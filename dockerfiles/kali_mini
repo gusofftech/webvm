@@ -1,0 +1,31 @@
+# Minimal Kali Linux
+FROM kalilinux/kali-rolling
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Base system + minimal tooling (no heavy metapackages)
+RUN apt-get update && apt-get -y dist-upgrade && \
+    apt-get -y install --no-install-recommends \
+      ca-certificates apt-transport-https gnupg \
+      sudo bash coreutils findutils procps psmisc file \
+      iproute2 iputils-ping net-tools dnsutils netcat-traditional \
+      curl wget less vim-tiny nano tmux \
+      python3 python3-pip gcc make git \
+      man-db manpages && \
+    apt-get -y autoremove && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# User + passwords (adjust as needed)
+RUN useradd -m user && echo "user:password" | chpasswd && \
+    echo 'root:password' | chpasswd && \
+    usermod -aG sudo user
+
+# Optional: copy your examples
+COPY --chown=user:user ./examples /home/user/examples
+RUN chmod -R +x /home/user/examples 2>/dev/null || true
+
+# Working dir & environment
+WORKDIR /home/user/
+ENV HOME="/home/user" TERM="xterm" USER="user" SHELL="/bin/bash" EDITOR="vim" LANG="en_US.UTF-8" LC_ALL="C"
+
+# Default shell
+CMD ["/bin/bash"]
