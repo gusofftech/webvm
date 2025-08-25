@@ -4,9 +4,10 @@
 </script>
 
 <h1 class="text-lg font-bold">Discord</h1>
-<PanelButton buttonImage="assets/discord-mark-blue.svg" clickUrl="https://discord.gg/yTNZgySKGa" buttonText="Join our Discord">
+<PanelButton buttonImage="assets/discord-mark-blue.svg" clickUrl="https://discord.gg/99np87gD" buttonText="Приєднатись до Discord">
 	<i class='fas fa-circle fa-xs ml-auto text-green-500'></i>
 	<span class="ml-1"><DiscordPresenceCount /></span>
 </PanelButton>
-<p>Do you have any question about WebVM or CheerpX?</p>
-<p>Join our community, we are happy to help!</p>
+
+<p>Є питання по лабораторіям Cyber Dojo чи хакінгу загалом?</p>
+<p>Заходь у нашу спільноту — тут ти отримаєш підтримку, поради та нові ідеї від інших нетренерів.</p>
