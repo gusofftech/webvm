@@ -2,61 +2,50 @@
 	import PanelButton from './PanelButton.svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { diskLatency } from './activities.js'
-	var dispatch = createEventDispatcher();
+	const dispatch = createEventDispatcher();
+
 	let state = "START";
-	function handleReset()
-	{
-		if(state == "START")
-			state = "CONFIRM";
-		else if (state == "CONFIRM") {
+
+	function handleReset() {
+		if (state === "START") state = "CONFIRM";
+		else if (state === "CONFIRM") {
 			state = "RESETTING";
 			dispatch('reset');
 		}
 	}
-	function getButtonText(state)
-	{
-		if(state == "START")
-			return "Reset disk";
-		else if (state == "RESETTING")
-			return "Resetting...";
-		else
-			return "Reset disk. Confirm?";
+
+	function getButtonText(state) {
+		if (state === "START") return "Скинути диск";
+		else if (state === "RESETTING") return "Скидання...";
+		else return "Скинути диск. Підтвердити?";
 	}
-	function getBgColor(state)
-	{
-		if(state == "START")
-		{
-			// Use default
-			return undefined;
-		}
-		else
-		{
-			return "bg-red-900";
-		}
+
+	function getBgColor(state) {
+		return state === "START" ? undefined : "bg-red-900";
 	}
-	function getHoverColor(state)
-	{
-		if(state == "START")
-		{
-			// Use default
-			return undefined;
-		}
-		else
-		{
-			return "hover:bg-red-700";
-		}
+
+	function getHoverColor(state) {
+		return state === "START" ? undefined : "hover:bg-red-700";
 	}
 </script>
-<h1 class="text-lg font-bold">Disk</h1>
-<PanelButton buttonIcon="fa-solid fa-trash-can" clickHandler={handleReset} buttonText={getButtonText(state)} bgColor={getBgColor(state)} hoverColor={getHoverColor(state)}>
+
+<h1 class="text-lg font-bold">Диск</h1>
+<PanelButton
+	buttonIcon="fa-solid fa-trash-can"
+	clickHandler={handleReset}
+	buttonText={getButtonText(state)}
+	bgColor={getBgColor(state)}
+	hoverColor={getHoverColor(state)}>
 </PanelButton>
+
 {#if state == "CONFIRM"}
-	<p><span class="font-bold">Warning: </span>WebVM will reload</p>
+	<p><span class="font-bold">Увага: </span>середовище буде перезавантажене.</p>
 {:else if state == "RESETTING"}
-	<p><span class="font-bold">Reset in progress: </span>Please wait...</p>
+	<p><span class="font-bold">Скидання триває: </span>зачекайте...</p>
 {:else}
-	<p><span class="font-bold">Backend latency: </span>{$diskLatency}ms</p>
+	<p><span class="font-bold">Затримка дискових операцій: </span>{$diskLatency} мс</p>
 {/if}
-<p>WebVM runs on top of a complete Linux distribution</p>
-<p>Filesystems up to 2GB are supported and data is downloaded completely on-demand</p>
-<p>The WebVM cloud backend uses WebSockets and a it's distributed via a global CDN to minimize download latency</p>
+
+<p>Всередині — повноцінний Linux. Диск лабораторії ізольований від вашого ПК.</p>
+<p>Підтримується файлова система до 2 ГБ; дані підвантажуються за потреби.</p>
+<p>Кнопка «Скинути диск» очищає сховище лаби й перезапускає середовище.</p>
