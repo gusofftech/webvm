@@ -1,53 +1,49 @@
-const color= "\x1b[1;35m";
-const underline= "\x1b[94;4m";
+const color= "\x1b[1;35m";       // magenta bold
+const underline= "\x1b[94;4m";   // blue underline
 const normal= "\x1b[0m";
+
 export const introMessage = [
 	"+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+",
 	"|                                                                             |",
-	"| WebVM is a virtual Linux environment running in the browser via WebAssembly |",
+	"|  Cyber Dojo — Linux PrivEsc Quest                                           |",
 	"|                                                                             |",
-	"| WebVM is powered by the CheerpX virtualization engine, which enables safe,  |",
-	"| sandboxed client-side execution of x86 binaries, fully client-side          |",
+	"|  This is a sandboxed Linux environment running fully in your browser.       |",
+	"|  No backend, no excuses — just you, the shell, and privilege escalation.    |",
 	"|                                                                             |",
-	"| CheerpX includes an x86-to-WebAssembly JIT compiler, a virtual block-based  |",
-	"| file system, and a Linux syscall emulator                                   |",
-	"|                                                                             |",
-	"| Try out the new Alpine / Xorg / i3 WebVM: " + underline + "https://webvm.io/alpine.html" + normal + "      |",
-	"|                                                                             |",
-	"| [News] Integrating Claude Computer Use in WebVM!                            |",
-	"|                                                                             |",
-	"| " + underline + "https://labs.leaningtech.com/blog/webvm-claude" + normal + "                              |",
+	"|  🥷 Learn how attackers think. Explore misconfigs, abuse SUID, break sudo.   |",
 	"|                                                                             |",
 	"+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~+",
 	"",
-	"   Welcome to WebVM. If unsure, try these examples:",
+	"   Welcome, netrunner. If unsure, try these moves:",
 	"",
-	"     python3 examples/python3/fibonacci.py ",
-	"     gcc -o helloworld examples/c/helloworld.c && ./helloworld",
-	"     objdump -d ./helloworld | less -M",
-	"     vim examples/c/helloworld.c",
-	"     curl --max-time 15 parrot.live  # requires networking",
+	"     cat /etc/shadow             # (world-readable in this dojo)",
+	"     sudo find / -name flag.txt  # sudo misconfig included",
+	"     nano /tmp/sneaky.sh         # note: nano has SUID bit ;)",
+	"     nice /bin/bash              # nice way to escalate",
+	"     cowsay 'hack the planet'    # style matters too",
 	""
 ];
+
 export const errorMessage = [
-	color + "CheerpX could not start" + normal,
+	color + "Cyber Dojo VM could not start" + normal,
 	"",
 	"Check the DevTools console for more information",
 	"",
-	"CheerpX is expected to work with recent desktop versions of Chrome, Edge, Firefox and Safari",
+	"Works best on recent desktop versions of Chrome, Edge, Firefox or Safari",
 	"",
-	"Give it a try from a desktop version / another browser!",
+	"Give it a try from a desktop browser!",
 	"",
-	"CheerpX internal error message is:",
+	"Internal dojo error message is:",
 	""
 ];
+
 export const unexpectedErrorMessage = [
-	color + "WebVM encountered an unexpected error" + normal,
+	color + "Cyber Dojo VM encountered an unexpected error" + normal,
 	"",
 	"Check the DevTools console for further information",
 	"",
-	"Please consider reporting a bug!",
+	"Please consider reporting this bug at: " + underline + "https://t.me/cyber_dojo" + normal,
 	"",
-	"CheerpX internal error message is:",
+	"Internal dojo error message is:",
 	""
 ];
