@@ -109,26 +109,22 @@
 			<DiskTab on:reset/>
 		{:else if activeInfo === 'ClaudeAI'}
 			<AnthropicTab handleTool={handleTool} />
-		{:else if activeInfo === 'Posts'}
-			<PostsTab/>
 		{:else if activeInfo === 'Discord'}
 			<DiscordTab/>
-		{:else if activeInfo === 'GitHub'}
-			<GitHubTab/>
 		{:else}
 			<p>TODO: {activeInfo}</p>
 		{/if}
 
 		<div class="mt-auto text-sm text-gray-300">
 			<div class="pt-1 pb-1">
-				<a href="https://cheerpx.io/" target="_blank">
-					<span>Powered by CheerpX</span>
-					<img src="assets/cheerpx.svg" alt="CheerpX Logo" class="w-6 h-6 inline-block">
+				<a href="https://offtech.click/" target="_blank">
+					<span>Powered by Offensive Technology</span>
+					<img src="assets/offtech.svg" alt="Offtech Logo" class="w-6 h-6 inline-block">
 				</a>
 			</div>
 			<hr class="border-t border-solid border-gray-300">
 			<div class="pt-1 pb-1">
-				<a href="https://leaningtech.com/" target="”_blank”">© 2022-2025 Leaning Technologies</a>
+				<a href="https://offtech.click/" target="”_blank”">© 2022-2025 Offensive Technology</a>
 			</div>
 		</div>
 	</div>
