@@ -1,0 +1,68 @@
+FROM --platform=i386 i386/debian:bookworm
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Base system + tools for the quest
+RUN apt-get clean && apt-get update && apt-get -y upgrade && \
+    apt-get -y install \
+        apt-utils gcc python3 vim unzip ruby nodejs fakeroot dbus base \
+        whiptail hexedit patch wamerican ucf manpages file luajit make \
+        lua5.4 dialog curl less cowsay netcat-openbsd \
+        nano sudo iproute2
+
+# User and passwords (intentionally weak for the quest)
+RUN useradd -m user && echo "user:password" | chpasswd && \
+    echo 'root:password' | chpasswd
+
+# Drop in example files (optional content for the quest)
+COPY --chown=user:user ./examples /home/user/examples
+RUN chmod -R +x /home/user/examples/lua
+
+# --- PrivEsc hooks ---------------------------------------------------------
+
+# 1) Make /etc/shadow readable (intentionally insecure, for the challenge)
+#    World-readable so basic users can read it.
+RUN chmod 0644 /etc/shadow
+
+# 2) SUID bits on nice and nano (intentionally insecure)
+#    Ensure owned by root, then set the setuid bit.
+RUN chown root:root /usr/bin/nice /bin/nano && \
+    chmod u+s /usr/bin/nice /bin/nano
+
+# 3) Granular sudo for 'user' to run only 'ip' and 'find' without password
+#    - Use full paths that match Debian bookworm
+#    - Validate the file with visudo
+RUN printf "user ALL=(root) NOPASSWD: /usr/sbin/ip, /usr/bin/find\n" > /etc/sudoers.d/cyberdojo && \
+    chmod 0440 /etc/sudoers.d/cyberdojo && \
+    visudo -cf /etc/sudoers.d/cyberdojo
+
+# --- Branding / UX ---------------------------------------------------------
+
+# MOTD + issue with Cyber Dojo branding
+RUN printf "\
+\033[1;36m====================================================\033[0m\n\
+\033[1;35m   CYBER DOJO — Linux PrivEsc Quest (i386 / Bookworm)\033[0m\n\
+\033[1;36m====================================================\033[0m\n\
+ User: \033[1;32muser\033[0m  |  Pass: \033[1;32mpassword\033[0m\n\
+ Root: \033[1;31mroot\033[0m  |  Pass: \033[1;31mpassword\033[0m\n\
+\n\
+ Hints:\n\
+  • \033[1;33mnice\033[0m and \033[1;33mnano\033[0m are setuid.\n\
+  • \033[1;33mshadow\033[0m is readable.\n\
+  • \033[1;33msudo\033[0m allows \033[1;33mip\033[0m and \033[1;33mfind\033[0m (NOPASSWD).\n\
+  • Explore /home/user/examples and think like an attacker.\n\
+\n\
+ Have fun. Be curious. Break things (safely).\n" > /etc/motd && \
+    printf "Cyber Dojo — Linux PrivEsc Quest\n" > /etc/issue
+
+# Ensure MOTD is shown on interactive shells (Debian uses pam_motd by default)
+# Add a tiny login banner in profile, just in case
+RUN printf "\n[ -r /etc/motd ] && cat /etc/motd\n" >> /etc/profile
+
+# --- Environment / defaults ------------------------------------------------
+
+WORKDIR /home/user/
+ENV HOME="/home/user" TERM="xterm" USER="user" SHELL="/bin/bash" EDITOR="vim" LANG="en_US.UTF-8" LC_ALL="C"
+
+# Default to a shell
+CMD ["/bin/bash"]
