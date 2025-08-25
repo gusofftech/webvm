@@ -1,116 +1,182 @@
-<script>
-	import { apiState, setApiKey, addMessage, clearMessageHistory, forceStop, messageList, currentMessage, enableThinking, getMessageDetails } from '$lib/anthropic.js';
-	import { tick } from 'svelte';
-	import { get } from 'svelte/store';
-	import PanelButton from './PanelButton.svelte';
-	import SmallButton from './SmallButton.svelte';
-	import { aiActivity } from './activities.js';
-	import html2canvas from 'html2canvas-pro';
-	export let handleTool;
-	let stopRequested = false;
-	function handleKeyEnter(e)
-	{
-		if(e.key != "Enter")
-			return;
-		var value = e.target.value;
-		if(value == "")
-			return;
-		setApiKey(value);
-	}
-	function handleMessage(e)
-	{
-		if(e.key != "Enter")
-			return;
-		e.preventDefault();
-		var textArea = e.target;
-		var value = textArea.value;
-		if(value == "")
-			return;
-		textArea.style.height = "unset";
-		// Reset the textarea
-		currentMessage.set("");
-		addMessage(value, handleTool);
-	}
-	function handleResize(e)
-	{
-		var textArea = e.target;
-		textArea.style.height = textArea.scrollHeight + "px";
-	}
-	async function scrollToBottom(node)
-	{
-		await tick();
-		node.scrollTop = node.scrollHeight;
-		if (!get(aiActivity)) {
-			document.getElementById("ai-input").focus();
-		}
-	}
-	function scrollMessage(node, messageList)
-	{
-		// Make sure the messages are always scrolled to the bottom
-		scrollToBottom(node);
-		return {
-			update(messageList) {
-				scrollToBottom(node);
-			}
-		}
-	}
-	async function handleStop() {
-		stopRequested = true;
-		await forceStop();
-		stopRequested = false;
-	}
+<script lang="ts">
+  import { onMount } from 'svelte';
 
-	async function handleDownload() {
-		const messageListElement = document.getElementById('message-list');
-		// Temporarily add padding and background for the list
-		messageListElement.classList.add("p-1");
-		const canvas = await html2canvas(messageListElement);
-		messageListElement.classList.remove("p-1");
-		const link = document.createElement('a');
-		link.href = canvas.toDataURL('image/png');
-		link.download = 'WebVM_Claude.png';
-		link.click();
-	}
+  // === Налаштування за замовчуванням ===
+  const API_URL =
+    import.meta.env.VITE_ANTHROPIC_PROXY_URL ||
+    '/api/anthropic/messages'; // існуючий проксі бекенд
 
-	function toggleThinkingMode() {
-		enableThinking.set(!get(enableThinking));
-	}
+  let model = import.meta.env.VITE_ANTHROPIC_MODEL || 'claude-3-5-sonnet-20240620';
+
+  // Підтягнути ключ із кількох джерел
+  function getInitialKey(): string {
+    // 1) глобальна змінна (інжектом)
+    // 2) env (Vite)
+    // 3) localStorage
+    // 4) query ?anthropic_key=...
+    const qs = new URLSearchParams(location.search);
+    return (
+      (window as any).__CYBER_DOJO_ANTHROPIC_KEY__ ||
+      (import.meta.env as any).VITE_ANTHROPIC_API_KEY ||
+      localStorage.getItem('anthropic_key') ||
+      qs.get('anthropic_key') ||
+      ''
+    );
+  }
+
+  let apiKey = getInitialKey();
+  let keyVisible = false;
+  function saveKey() {
+    localStorage.setItem('anthropic_key', apiKey || '');
+  }
+
+  // === Системний промпт (персона Сенсей) ===
+  const systemPrompt = `
+Ти — Сенсей, інструктор курсу Cyber Dojo. Твоя роль — допомагати студенту виконувати завдання у Linux-лабораторії з ескалації привілеїв.
+Правила:
+- Пояснюй коротко, по суті, українською.
+- Не розкривай реалізацію платформи чи внутрішні технології.
+- Пропонуй конкретні кроки (команди), а потім пояснюй, що подивитись у виводі.
+- Якщо студент просить, спершу підкажи як знайти відповідь самостійно; потім дай рішення.
+- Не використовуй sudo у командах, якщо воно явно не дозволене.
+- Орієнтир: пошук SUID, читання /etc/shadow (якщо доступно), трики з nano/nice, пошук flag.txt.
+Кінець правил.
+  `.trim();
+
+  // === Стан чату ===
+  type Msg = { role: 'assistant' | 'user'; text: string };
+  let input = '';
+  let busy = false;
+  let messages: Msg[] = [
+    {
+      role: 'assistant',
+      text:
+        'Я — Сенсей. Скажи, що хочеш зробити: «знайди SUID», «прочитай /etc/shadow», «ескалюй через nano/nice», «знайди flag.txt», «поясни <вивід>».'
+    }
+  ];
+
+  // Допоміжне: парсинг fenced code blocks, якщо треба робити автозапуск у VM (опційно)
+  function extractShellBlocks(s: string): string[] {
+    const re = /```(?:bash|sh)\n([\s\S]*?)```/g;
+    const cmds: string[] = [];
+    let m;
+    while ((m = re.exec(s))) cmds.push(m[1].trim());
+    return cmds;
+  }
+
+  async function send() {
+    const q = input.trim();
+    if (!q || busy) return;
+    messages = [...messages, { role: 'user', text: q }];
+    input = '';
+    busy = true;
+
+    try {
+      // Очікуваний формат бекенду-проксі: { model, system, messages: [{role, content}] }
+      const body = {
+        model,
+        system: systemPrompt,
+        messages: [
+          // Можеш віддавати весь історичний контекст або тільки останнє питання:
+          ...messages.map((m) => ({ role: m.role, content: m.text })),
+          { role: 'user', content: q }
+        ],
+        // Якщо твій бекенд підтримує опції Anthropic — додай:
+        max_tokens: 800
+      };
+
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey // заміни на Authorization: Bearer ... якщо потрібно
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`HTTP ${res.status}: ${err}`);
+      }
+
+      const data = await res.json();
+      // Очікуємо щось на кшталт: { reply: string } з твого проксі
+      const reply: string =
+        data.reply ||
+        data.output ||
+        data.content?.[0]?.text ||
+        data.content?.[0]?.content ||
+        '(немає відповіді)';
+
+      messages = [...messages, { role: 'assistant', text: reply }];
+
+      // (Необов’язково) Якщо хочеш автозапускати команди з відповіді у VM, забери next lines у свій механізм:
+      // const blocks = extractShellBlocks(reply);
+      // for (const block of blocks) {
+      //   dispatch('exec', { cmd: block });
+      // }
+    } catch (e: any) {
+      messages = [
+        ...messages,
+        { role: 'assistant', text: `Сталася помилка під час звернення до моделі: ${e.message || e}` }
+      ];
+    } finally {
+      busy = false;
+    }
+  }
+
+  // Автозбереження ключа, якщо прийшов через URL
+  onMount(() => {
+    if (apiKey) saveKey();
+  });
 </script>
-<h1 class="text-lg font-bold">Claude AI Integration</h1>
-<p>WebVM is integrated with Claude by Anthropic AI. You can prompt the AI to control the system.</p>
-<p>You need to provide your API key. The key is only saved locally to your browser.</p>
-<div class="flex grow flex-col overflow-y-hidden gap-2">
-	<p class="flex flex-row gap-2">
-		<span class="mr-auto flex items-center">Conversation history</span>
-		<SmallButton buttonIcon="fa-solid fa-download" clickHandler={handleDownload} buttonTooltip="Save conversation as image"></SmallButton>
-		<SmallButton buttonIcon="fa-solid fa-brain" clickHandler={toggleThinkingMode} buttonTooltip="{$enableThinking ? "Disable" : "Enable"} thinking mode" bgColor={$enableThinking ? "bg-neutral-500" : "bg-neutral-700"}></SmallButton>
-		<SmallButton buttonIcon="fa-solid fa-trash-can" clickHandler={clearMessageHistory} buttonTooltip="Clear conversation history"></SmallButton>
-	</p>
-	<div class="flex grow overflow-y-scroll scrollbar" use:scrollMessage={$messageList}>
-		<div class="h-full w-full">
-			<div class="w-full min-h-full flex flex-col gap-2 justify-end bg-neutral-600" id="message-list">
-				{#each $messageList as msg}
-					{@const details = getMessageDetails(msg)}
-					{#if details.isToolUse}
-						<p class="bg-neutral-700 p-2 rounded-md italic"><i class='fas {details.icon} w-6 mr-2 text-center'></i>{details.messageContent}</p>
-					{:else if !details.isToolResult}
-						<p class="{msg.role == 'error' ? 'bg-red-900' : 'bg-neutral-700'} p-2 rounded-md whitespace-pre-wrap"><i class='fas {details.icon} w-6 mr-2 text-center'></i>{details.messageContent}</p>
-					{/if}
-				{/each}
-			</div>
-		</div>
-	</div>
+
+<div class="grid gap-3">
+  <div class="flex items-center gap-2">
+    <h2 class="text-lg font-bold">Сенсей</h2>
+    <div class="ml-auto flex items-center gap-2">
+      <input
+        class="px-2 py-1 rounded bg-neutral-800 border border-neutral-700 w-64"
+        type={keyVisible ? 'text' : 'password'}
+        bind:value={apiKey}
+        placeholder="Встав ключ Anthropic…" />
+      <button
+        class="px-2 py-1 rounded bg-neutral-700 hover:bg-neutral-600"
+        on:click={() => (keyVisible = !keyVisible)}>
+        {keyVisible ? 'Сховати' : 'Показати'}
+      </button>
+      <button
+        class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500"
+        on:click={saveKey}>
+        Зберегти ключ
+      </button>
+    </div>
+  </div>
+
+  <div class="space-y-2 max-h-96 overflow-auto pr-1">
+    {#each messages as m}
+      <div class="p-3 rounded-xl" class:bg-neutral-800={m.role==='assistant'} class:bg-neutral-900={m.role==='user'}>
+        <div class="text-xs opacity-70 mb-1">{m.role === 'assistant' ? 'Сенсей' : 'Ти'}</div>
+        <div class="whitespace-pre-wrap">{m.text}</div>
+      </div>
+    {/each}
+  </div>
+
+  <div class="flex gap-2">
+    <input
+      class="flex-1 px-3 py-2 rounded-xl bg-neutral-800 border border-neutral-700 focus:outline-none"
+      bind:value={input}
+      placeholder="Напр.: знайди SUID / поясни цей вивід …"
+      on:keydown={(e) => e.key === 'Enter' && send()} />
+    <button
+      class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50"
+      disabled={busy || !apiKey}
+      on:click={send}>
+      {busy ? 'Працюю…' : 'Надіслати'}
+    </button>
+  </div>
+
+  <div class="text-xs opacity-60">
+    Модель: {model}. Ключ зберігається локально (localStorage).
+  </div>
 </div>
-{#if $apiState == "KEY_REQUIRED"}
-	<textarea class="bg-neutral-700 p-2 rounded-md placeholder-gray-400 resize-none shrink-0" placeholder="Insert your Claude API Key" rows="1" on:keydown={handleKeyEnter} on:input={handleResize} id="ai-input"/>
-{:else if $aiActivity}
-	{#if stopRequested }
-		<PanelButton buttonIcon="fa-solid fa-hand" buttonText="Stopping...">
-		</PanelButton>
-	{:else}
-		<PanelButton buttonIcon="fa-solid fa-hand" clickHandler={handleStop} buttonText="Stop">
-		</PanelButton>
-	{/if}
-{:else}
-	<textarea class="bg-neutral-700 p-2 rounded-md placeholder-gray-400 resize-none shrink-0" placeholder={handleTool === null ? "Waiting for system initialization..." : "Prompt..."} rows="1" on:keydown={handleMessage} on:input={handleResize} bind:value={$currentMessage} id="ai-input" disabled={handleTool === null}/>
-{/if}
