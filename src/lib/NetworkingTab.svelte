@@ -1,10 +1,11 @@
 <script>
-	import { networkData, startLogin, updateButtonData } from '$lib/network.js'
+	import { networkData, startLogin, updateButtonData } from '$lib/network.js';
 	import { createEventDispatcher } from 'svelte';
 	import PanelButton from './PanelButton.svelte';
-	var dispatch = createEventDispatcher();
-	var connectionState = networkData.connectionState;
-	var exitNode = networkData.exitNode;
+
+	const dispatch = createEventDispatcher();
+	const connectionState = networkData.connectionState;
+	const exitNode = networkData.exitNode;
 
 	function handleConnect() {
 		connectionState.set("DOWNLOADING");
@@ -14,11 +15,30 @@
 	let buttonData = null;
 	$: buttonData = updateButtonData($connectionState, handleConnect);
 </script>
-<h1 class="text-lg font-bold">Networking</h1>
-<PanelButton buttonImage="assets/tailscale.svg" clickUrl={buttonData.clickUrl} clickHandler={buttonData.clickHandler} rightClickHandler={buttonData.rightClickHandler} buttonTooltip={buttonData.buttonTooltip} buttonText={buttonData.buttonText}>
+
+<h1 class="text-lg font-bold">Мережа</h1>
+<PanelButton
+	buttonImage="assets/network-tunnel.svg"
+	clickUrl={buttonData.clickUrl}
+	clickHandler={buttonData.clickHandler}
+	rightClickHandler={buttonData.rightClickHandler}
+	buttonTooltip={buttonData.buttonTooltip}
+	buttonText={buttonData.buttonText}>
 	{#if $connectionState == "CONNECTED"}
-		<i class='fas fa-circle fa-xs ml-auto {$exitNode ? 'text-green-500' : 'text-amber-500'}' title={$exitNode ? 'Ready' : 'No exit node'}></i>
+		<i
+			class='fas fa-circle fa-xs ml-auto {$exitNode ? "text-green-500" : "text-amber-500"}'
+			title={$exitNode ? "Готово" : "Без вихідного вузла"}>
+		</i>
 	{/if}
 </PanelButton>
-<p>WebVM can connect to the Internet via Tailscale</p>
-<p>Using Tailscale is required since browser do not support TCP/UDP sockets (yet!)</p>
+
+{#if $connectionState == "CONNECTED"}
+	<p><span class="font-bold">Статус: </span>підключено. Трафік іде через захищений тунель.</p>
+{:else if $connectionState == "DOWNLOADING"}
+	<p><span class="font-bold">Статус: </span>встановлення захищеного каналу…</p>
+{:else}
+	<p><span class="font-bold">Статус: </span>офлайн. Натисни «{buttonData.buttonText}» для підключення.</p>
+{/if}
+
+<p>Браузери не надають прямого доступу до сирих TCP/UDP-сокетів, тому використовується безпечний транспорт поверх веб‑технологій.</p>
+<p>Після підключення середовище зможе звертатися до зовнішніх ресурсів зсередини лаби.</p>
