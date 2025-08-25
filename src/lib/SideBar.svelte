@@ -119,7 +119,6 @@
 			<div class="pt-1 pb-1">
 				<a href="https://offtech.click/" target="_blank">
 					<span>Powered by Offensive Technology</span>
-					<img src="assets/offtech.svg" alt="Offtech Logo" class="w-6 h-6 inline-block">
 				</a>
 			</div>
 			<hr class="border-t border-solid border-gray-300">
