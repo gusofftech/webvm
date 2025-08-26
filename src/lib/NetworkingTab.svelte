@@ -18,7 +18,7 @@
 
 <h1 class="text-lg font-bold">Мережа</h1>
 <PanelButton
-	buttonImage="assets/network-tunnel.svg"
+	buttonImage="assets/tailscale.svg"
 	clickUrl={buttonData.clickUrl}
 	clickHandler={buttonData.clickHandler}
 	rightClickHandler={buttonData.rightClickHandler}
