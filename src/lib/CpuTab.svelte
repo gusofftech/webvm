@@ -4,8 +4,6 @@
 </script>
 
 <h1 class="text-lg font-bold">Engine</h1>
-<PanelButton buttonImage="assets/cyber-core.svg" clickUrl="#" buttonText="Cyber Dojo Engine">
-</PanelButton>
 
 <p><span class="font-bold">Віртуальний CPU: </span>{$cpuPercentage}%</p>
 <p>Ти працюєш у повноцінному Linux середовищі, яке запускається прямо у браузері.</p>
