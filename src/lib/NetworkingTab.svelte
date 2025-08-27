@@ -1,5 +1,5 @@
 <script>
-	import { networkData, startLogin, updateButtonData, setDojoAuthKey } from '$lib/network.js'; // ⬅️ + setDojoAuthKey
+	import { networkData, updateButtonData, setDojoAuthKey } from '$lib/network.js';
 	import { createEventDispatcher } from 'svelte';
 	import PanelButton from './PanelButton.svelte';
 
@@ -8,14 +8,15 @@
 	const exitNode = networkData.exitNode;
 
 	function handleConnect() {
-		connectionState.set("DOWNLOADING");
+		// старий флоу — як і був
+		$connectionState = "DOWNLOADING";
 		dispatch('connect');
 	}
 
-	// NEW: dojo connect — без редіректів, просто встановлюємо ключ і шлемо подію
+	// NEW: dojo connect — без редіректів: підставляємо ключ і шлемо подію
 	function handleConnectDojo() {
-		connectionState.set("DOWNLOADING");
-		setDojoAuthKey();              // ⬅️ підставляє вбудований ключ
+		$connectionState = "DOWNLOADING";
+		setDojoAuthKey();
 		dispatch('connect', { mode: 'dojo' });
 	}
 
@@ -41,7 +42,7 @@
 	{/if}
 </PanelButton>
 
-<!-- НОВА кнопка для Dojo (auth-key, без логіну/редіректу) -->
+<!-- NEW: Dojo (auth-key) кнопка, без логіну/редіректу -->
 <PanelButton
 	buttonImage="assets/tailscale.svg"
 	clickHandler={handleConnectDojo}
