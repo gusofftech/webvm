@@ -7,17 +7,17 @@
 	const connectionState = networkData.connectionState;
 	const exitNode = networkData.exitNode;
 
+	// Старий флоу (логін) — без змін
 	function handleConnect() {
-		// старий флоу — як і був
-		$connectionState = "DOWNLOADING";
+		connectionState.set("DOWNLOADING");
 		dispatch('connect');
 	}
 
-	// NEW: dojo connect — без редіректів: підставляємо ключ і шлемо подію
+	// Новий флоу Dojo (auth-key, без редіректу)
 	function handleConnectDojo() {
-		$connectionState = "DOWNLOADING";
-		setDojoAuthKey();
-		dispatch('connect', { mode: 'dojo' });
+		setDojoAuthKey();                    // ПІДСТАВЛЯЄМО ключ ДО старту
+		connectionState.set("DOWNLOADING");  // одразу показуємо стан
+		dispatch('connect', { mode: 'dojo' }); // далі зовнішній код стартує рушій
 	}
 
 	let buttonData = null;
@@ -26,7 +26,7 @@
 
 <h1 class="text-lg font-bold">Мережа</h1>
 
-<!-- Існуюча кнопка (без змін) -->
+<!-- Існуюча кнопка (логін-флоу) -->
 <PanelButton
 	buttonImage="assets/tailscale.svg"
 	clickUrl={buttonData.clickUrl}
@@ -42,7 +42,7 @@
 	{/if}
 </PanelButton>
 
-<!-- NEW: Dojo (auth-key) кнопка, без логіну/редіректу -->
+<!-- НОВА кнопка: Dojo (auth-key), без логіну/редіректу -->
 <PanelButton
 	buttonImage="assets/tailscale.svg"
 	clickHandler={handleConnectDojo}
