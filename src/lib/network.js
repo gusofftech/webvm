@@ -1,7 +1,7 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-// NEW: вбудований Dojo-ключ
+// Вбудований Dojo-ключ
 const DOJO_AUTH_KEY = "tskey-auth-k649fJ4YsA21CNTRL-sAgL4cbsHhdvvadmNwFQhdiCQk7NaVSL";
 
 let authKey = undefined;
@@ -21,9 +21,14 @@ let loginPromise = new Promise((f, r) => { resolveLogin = f; });
 let connectionState = writable("DISCONNECTED");
 let exitNode = writable(false);
 
+// Якщо рушій попросить URL логіну, але ми вже на auth-key — ігноруємо, щоб не було редіректу
 function loginUrlCb(url) {
+  if (networkInterface.authKey || authKey) {
+    // на auth-key логін не потрібен
+    return;
+  }
   connectionState.set("LOGINREADY");
-  resolveLogin(url);
+  resolveLogin && resolveLogin(url);
 }
 
 function stateUpdateCb(state) {
@@ -49,7 +54,17 @@ function netmapUpdateCb(map) {
   }
 }
 
+// Якщо зовнішній код випадково викличе startLogin(), але ключ уже є — не відкриваємо логін і нічого не ламаємо
 export async function startLogin() {
+  if (networkInterface.authKey || authKey) {
+    // вже працюємо по auth-key: не тригеримо ніяких логінів/лінків
+    connectionState.set("DOWNLOADING");
+    networkData.loginUrl = null;
+    // миттєво «закриємо» очікування, щоб ніхто ні на що не чекав
+    try { resolveLogin && resolveLogin(null); } catch {}
+    return null;
+  }
+
   connectionState.set("LOGINSTARTING");
   const url = await loginPromise;
   networkData.loginUrl = url;
@@ -57,9 +72,7 @@ export async function startLogin() {
 }
 
 async function handleCopyIP(event) {
-  // To prevent the default contextmenu from showing up when right-clicking..
   event.preventDefault();
-  // Copy the IP to the clipboard.
   try {
     await window.navigator.clipboard.writeText(networkData.currentIp);
     connectionState.set("IPCOPIED");
@@ -139,9 +152,10 @@ export function updateButtonData(state, handleConnect) {
   }
 }
 
-// NEW: простий сеттер — підставляє dojo-ключ у рантаймі (без редіректів, без localStorage)
+// Підставляємо dojo-ключ ДО старту рушія: і в runtime-об'єкт, і у локальну змінну (для сумісності)
 export function setDojoAuthKey() {
-  networkInterface.authKey = DOJO_AUTH_KEY;
+  authKey = DOJO_AUTH_KEY; // якщо десь використовують модульну змінну
+  networkInterface.authKey = DOJO_AUTH_KEY; // основне джерело для рушія
 }
 
 export const networkInterface = {
