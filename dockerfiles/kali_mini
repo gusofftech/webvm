@@ -8,11 +8,12 @@ RUN apt-get update && apt-get -y dist-upgrade && \
     apt-get -y install --no-install-recommends \
       ca-certificates apt-transport-https gnupg \
       sudo bash coreutils findutils procps psmisc file \
-      iproute2 iputils-ping net-tools dnsutils netcat-traditional \
+      iproute2 iputils-ping net-tools dnsutils \
       curl wget less vim-tiny nano tmux \
       python3 python3-pip gcc make git \
-      man-db manpages && \
-    apt-get -y autoremove && apt-get clean && rm -rf /var/lib/apt/lists/*
+      man-db manpages \
+      nmap netcat-openbsd \
+    && apt-get -y autoremove && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # User + passwords (adjust as needed)
 RUN useradd -m user && echo "user:password" | chpasswd && \
