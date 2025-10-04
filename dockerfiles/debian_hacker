@@ -1,0 +1,114 @@
+FROM debian:bookworm
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TERM=xterm-256color
+
+# Core tooling, retro terminal eye-candy, and hacker utilities
+RUN apt-get update && \
+    apt-get -y dist-upgrade && \
+    apt-get install -y --no-install-recommends \
+        apt-utils \
+        asciiquarium \
+        bash-completion \
+        bat \
+        bmon \
+        btop \
+        ca-certificates \
+        cmatrix \
+        curl \
+        dnsutils \
+        eza \
+        fd-find \
+        figlet \
+        fish \
+        fortune-mod \
+        fzf \
+        gdb \
+        git \
+        gnupg \
+        htop \
+        httpie \
+        iproute2 \
+        iputils-ping \
+        jq \
+        lolcat \
+        lynx \
+        neofetch \
+        neovim \
+        netcat-openbsd \
+        nmap \
+        openssh-client \
+        procps \
+        python3 \
+        python3-pip \
+        python3-venv \
+        ripgrep \
+        socat \
+        sqlmap \
+        tmux \
+        tree \
+        unzip \
+        wget \
+        zsh && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Quality of life symlinks for modern CLI utilities
+RUN ln -s /usr/bin/batcat /usr/local/bin/bat && \
+    ln -s /usr/bin/fdfind /usr/local/bin/fd
+
+# Create the primary hacker user
+RUN useradd -m -s /usr/bin/zsh hacker && echo "hacker:haxx0r" | chpasswd
+
+# Futuristic prompt, neon motd, and curated aliases
+RUN cat <<'PROFILE' > /etc/profile.d/99-hax.sh
+export PATH="/home/hacker/.local/bin:$PATH"
+export EDITOR=nvim
+alias cat='bat --paging=never --style=plain'
+alias ls='eza --color=auto --group-directories-first'
+alias ll='eza -lh --git'
+alias la='eza -lha'
+alias grep='rg'
+alias fd='fdfind'
+alias matrix='cmatrix -C cyan -b -u 4'
+alias ssh='TERM=xterm-256color ssh'
+PROFILE
+
+RUN printf '%s\n' \
+'  _______ _   _ ______ ______ _____   _____ _    _ _      _      ' \
+' |__   __| \ | |  ____|  ____|  __ \ / ____| |  | | |    | |     ' \
+'    | |  |  \| | |__  | |__  | |__) | (___ | |__| | |    | |     ' \
+'    | |  | . ` |  __| |  __| |  _  / \___ \|  __  | |    | |     ' \
+'    | |  | |\  | |____| |____| | \ \ ____) | |  | | |____| |____ ' \
+'    |_|  |_| \_|______|______|_|  \_\_____/|_|  |_|______|______|' \
+'' \
+'   welcome to terminash :: type matrix for the wireframe rain' \
+> /etc/motd
+
+RUN cat <<'EOFZSH' > /home/hacker/.zshrc
+setopt PROMPT_SUBST
+autoload -Uz colors && colors
+
+prompt_git() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || return
+  local branch
+  branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+  printf ' [%s]' "$branch"
+}
+
+PROMPT='%F{cyan}%n%f@%F{magenta}%m%f %F{green}%~%f$(prompt_git)
+%F{red}>%f '
+
+alias reload="source ~/.zshrc"
+source /etc/profile.d/99-hax.sh
+
+neofetch --logo small --ascii_colors 51 213 118 || true
+fortune | lolcat || true
+EOFZSH
+
+RUN chown hacker:hacker /home/hacker/.zshrc
+
+COPY --chown=hacker:hacker ./examples /home/hacker/examples
+
+USER hacker
+WORKDIR /home/hacker
+CMD ["/usr/bin/zsh"]
