@@ -2,9 +2,6 @@ FROM debian:bookworm
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm-256color
 
-# Add backports for newer CLI tooling (e.g. eza)
-RUN echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list
-
 # Core tooling, retro terminal eye-candy, and hacker utilities
 RUN apt-get update && \
     apt-get -y dist-upgrade && \
@@ -52,7 +49,6 @@ RUN apt-get update && \
         unzip \
         wget \
         zsh && \
-    apt-get install -y --no-install-recommends -t bookworm-backports eza && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -73,9 +69,9 @@ RUN cat <<'PROFILE' > /etc/profile.d/99-hax.sh
 export PATH="/home/hacker/.local/bin:$PATH"
 export EDITOR=nvim
 alias cat='bat --paging=never --style=plain'
-alias ls='eza --color=auto --group-directories-first'
-alias ll='eza -lh --git'
-alias la='eza -lha'
+alias ls='ls --color=auto'
+alias ll='ls -lh --color=auto'
+alias la='ls -lha --color=auto'
 alias grep='rg'
 alias fd='fdfind'
 alias matrix='cmatrix -C cyan -b -u 4'
