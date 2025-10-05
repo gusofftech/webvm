@@ -2,64 +2,34 @@ FROM debian:bookworm
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm-256color
 
-# Core tooling, retro terminal eye-candy, and hacker utilities
+# Core essentials plus light terminal flair
 RUN apt-get update && \
     apt-get -y dist-upgrade && \
     apt-get install -y --no-install-recommends \
         apt-utils \
         bash-completion \
         bat \
-        bmon \
-        btop \
         ca-certificates \
         cmatrix \
         curl \
-        dnsutils \
-        fd-find \
-        figlet \
-        fish \
         fortune-mod \
-        fzf \
-        gdb \
         git \
-        gnupg \
         htop \
-        httpie \
-        iproute2 \
-        iputils-ping \
         jq \
         lolcat \
-        lynx \
         neofetch \
         neovim \
-        netcat-openbsd \
-        nmap \
-        openssh-client \
         procps \
-        python3 \
-        python3-pip \
-        python3-venv \
         ripgrep \
-        socat \
-        sqlmap \
-        pipes-sh \
         tmux \
-        toilet \
         tree \
-        unzip \
         wget \
         zsh && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Extra goodies fetched outside APT
-RUN curl -fsSL https://raw.githubusercontent.com/cmatsuoka/asciiquarium/master/asciiquarium \
-        -o /usr/local/bin/asciiquarium && \
-    chmod +x /usr/local/bin/asciiquarium
-
 # Quality of life symlinks for modern CLI utilities
-RUN ln -s /usr/bin/batcat /usr/local/bin/bat && \
-    ln -s /usr/bin/fdfind /usr/local/bin/fd
+RUN ln -s /usr/bin/batcat /usr/local/bin/bat
 
 # Create the primary hacker user
 RUN useradd -m -s /usr/bin/zsh hacker && echo "hacker:haxx0r" | chpasswd
@@ -73,7 +43,6 @@ alias ls='ls --color=auto'
 alias ll='ls -lh --color=auto'
 alias la='ls -lha --color=auto'
 alias grep='rg'
-alias fd='fdfind'
 alias matrix='cmatrix -C cyan -b -u 4'
 alias ssh='TERM=xterm-256color ssh'
 PROFILE
